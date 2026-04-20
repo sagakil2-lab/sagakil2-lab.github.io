@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="내 금고">
+<meta name="theme-color" content="#0f0f14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<title>내 금고</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f14;
+  --surface: #16161e;
+  --surface2: #1e1e28;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8e8f0;
+  --text2: #8888a0;
+  --text3: #444458;
+  --accent: #7c6af7;
+  --accent-dim: rgba(124,106,247,0.15);
+  --green: #4ade80;
+  --green-dim: rgba(74,222,128,0.12);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251,191,36,0.12);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.12);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Pretendard', -apple-system, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: var(--sans); color: var(--text); }
+
+/* LAYOUT */
+#app { height: 100dvh; display: flex; flex-direction: column; }
+#screen { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0 0 80px; }
+#screen::-webkit-scrollbar { display: none; }
+
+/* NAV BAR */
+#navbar { 
+  display: flex; align-items: center; justify-content: space-around;
+  background: rgba(15,15,20,0.92); backdrop-filter: blur(20px);
+  border-top: 0.5px solid var(--border2);
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  position: relative; z-index: 50;
+}
+.nav-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer; padding: 6px 20px;
+  color: var(--text3); transition: color 0.2s;
+}
+.nav-btn.active { color: var(--accent); }
+.nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.nav-label { font-size: 10px; font-weight: 500; letter-spacing: 0.03em; }
+
+/* HEADER */
+.page-header {
+  padding: 20px 20px 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.page-title { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.page-sub { font-size: 13px; color: var(--text2); margin-top: 3px; }
+
+/* SEARCH */
+.search-wrap { padding: 16px 20px 0; }
+.search-box {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 0 14px; height: 42px;
+}
+.search-box svg { width: 16px; height: 16px; stroke: var(--text3); fill: none; stroke-width: 1.8; flex-shrink: 0; stroke-linecap: round; stroke-linejoin: round; }
+.search-box input { flex: 1; background: none; border: none; outline: none; font-size: 14px; font-family: var(--sans); color: var(--text); }
+.search-box input::placeholder { color: var(--text3); }
+
+/* STATS STRIP */
+.stats-strip { display: flex; gap: 10px; padding: 16px 20px 0; }
+.stat-chip {
+  flex: 1; background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px;
+}
+.stat-chip .num { font-size: 22px; font-weight: 700; }
+.stat-chip .lbl { font-size: 10px; color: var(--text2); margin-top: 2px; letter-spacing: 0.04em; }
+.stat-chip.green .num { color: var(--green); }
+.stat-chip.amber .num { color: var(--amber); }
+.stat-chip.red .num { color: var(--red); }
+
+/* SECTION */
+.section { padding: 20px 20px 0; }
+.section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--text3); text-transform: uppercase; margin-bottom: 12px; }
+
+/* PASSWORD CARD */
+.pw-list { display: flex; flex-direction: column; gap: 8px; }
+.pw-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+  display: flex; align-items: center; gap: 13px;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+.pw-card:active { background: var(--surface2); border-color: var(--border2); }
+.pw-avatar {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; flex-shrink: 0;
+  font-family: var(--mono);
+}
+.pw-body { flex: 1; min-width: 0; }
+.pw-site { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pw-user { font-size: 12px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pw-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.pw-strength-dot { width: 6px; height: 6px; border-radius: 50%; }
+.pw-strength-text { font-size: 10px; font-weight: 500; }
+.pw-mask { font-family: var(--mono); font-size: 12px; color: var(--text3); letter-spacing: 3px; }
+.pw-actions { display: flex; gap: 6px; }
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--surface2); border: 0.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s;
+}
+.icon-btn:active { background: var(--border2); }
+.icon-btn svg { width: 14px; height: 14px; stroke: var(--text2); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn.danger svg { stroke: var(--red); }
+
+/* CATEGORY CHIPS */
+.cat-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.cat-chip {
+  font-size: 11px; font-weight: 500; padding: 4px 10px;
+  border-radius: 20px; border: 0.5px solid var(--border2);
+  background: var(--surface); color: var(--text2); cursor: pointer;
+  transition: all 0.15s;
+}
+.cat-chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+/* EMPTY STATE */
+.empty { text-align: center; padding: 60px 20px; }
+.empty-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.empty-sub { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ADD FORM */
+.form-wrap { padding: 0 20px; }
+.form-section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--text3); text-transform: uppercase; margin: 20px 0 12px; }
+.field { margin-bottom: 12px; }
+.field-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: block; }
+.field input, .field select, .field textarea {
+  width: 100%; background: var(--surface); border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  font-size: 15px; font-family: var(--sans); color: var(--text); outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field input::placeholder { color: var(--text3); }
+.field.mono input { font-family: var(--mono); font-size: 14px; letter-spacing: 0.05em; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.strength-bar-wrap { margin-top: 8px; }
+.strength-bar-bg { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.strength-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+.strength-label { font-size: 11px; margin-top: 5px; font-weight: 500; }
+.pw-input-row { display: flex; gap: 8px; }
+.pw-input-row input { flex: 1; }
+.gen-mini-btn {
+  background: var(--accent-dim); border: 0.5px solid var(--accent);
+  color: var(--accent); border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; padding: 0 14px;
+  cursor: pointer; white-space: nowrap; font-family: var(--sans);
+}
+
+/* BUTTONS */
+.btn-primary {
+  width: 100%; background: var(--accent); border: none;
+  border-radius: var(--radius); color: #fff;
+  font-size: 16px; font-weight: 600; font-family: var(--sans);
+  padding: 16px; cursor: pointer; margin-top: 8px;
+  transition: opacity 0.15s;
+}
+.btn-primary:active { opacity: 0.8; }
+.btn-secondary {
+  width: 100%; background: var(--surface); border: 0.5px solid var(--border2);
+  border-radius: var(--radius); color: var(--text);
+  font-size: 15px; font-weight: 500; font-family: var(--sans);
+  padding: 14px; cursor: pointer; margin-top: 8px;
+  transition: background 0.15s;
+}
+.btn-secondary:active { background: var(--surface2); }
+
+/* GENERATOR */
+.gen-output-card {
+  background: var(--surface); border: 0.5px solid var(--border2);
+  border-radius: var(--radius); padding: 20px 18px;
+  margin-bottom: 16px;
+}
+.gen-pw-text {
+  font-family: var(--mono); font-size: 17px; font-weight: 500;
+  letter-spacing: 0.05em; word-break: break-all;
+  line-height: 1.7; color: var(--text);
+  min-height: 60px;
+}
+.gen-pw-placeholder { color: var(--text3); font-family: var(--sans); font-size: 14px; }
+.gen-actions { display: flex; gap: 8px; margin-top: 14px; }
+.gen-copy-btn {
+  flex: 1; background: var(--accent-dim); border: 0.5px solid var(--accent);
+  color: var(--accent); border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600; padding: 11px;
+  cursor: pointer; font-family: var(--sans); transition: background 0.15s;
+}
+.gen-copy-btn:active { background: rgba(124,106,247,0.25); }
+.gen-refresh-btn {
+  width: 44px; background: var(--surface2); border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm); cursor: pointer; display: flex;
+  align-items: center; justify-content: center; transition: background 0.15s;
+}
+.gen-refresh-btn:active { background: var(--border2); }
+.gen-refresh-btn svg { width: 16px; height: 16px; stroke: var(--text2); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.slider-wrap { margin-bottom: 20px; }
+.slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.slider-label { font-size: 13px; color: var(--text2); font-weight: 500; }
+.slider-val { font-size: 20px; font-weight: 700; color: var(--text); font-family: var(--mono); }
+input[type=range] {
+  width: 100%; -webkit-appearance: none; height: 4px;
+  background: var(--surface2); border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px;
+  background: var(--accent); border-radius: 50%; cursor: pointer;
+  border: 3px solid var(--bg);
+}
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+.opt-toggle {
+  background: var(--surface); border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  cursor: pointer; display: flex; align-items: center; gap: 10px;
+  transition: all 0.15s;
+}
+.opt-toggle.on { background: var(--accent-dim); border-color: var(--accent); }
+.opt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; transition: background 0.15s; }
+.opt-toggle.on .opt-dot { background: var(--accent); }
+.opt-text { font-size: 12px; font-weight: 500; color: var(--text2); }
+.opt-toggle.on .opt-text { color: var(--accent); }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface2); border: 0.5px solid var(--border2);
+  color: var(--text); font-size: 13px; font-weight: 500;
+  padding: 10px 20px; border-radius: 30px; z-index: 999;
+  opacity: 0; transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none; white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* DETAIL OVERLAY */
+#detail-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  align-items: flex-end;
+}
+#detail-overlay.open { display: flex; }
+#detail-sheet {
+  width: 100%; background: var(--surface); border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  border-top: 0.5px solid var(--border2);
+}
+.sheet-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 20px; }
+.sheet-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.sheet-cat { font-size: 12px; color: var(--text2); margin-bottom: 20px; }
+.sheet-field { margin-bottom: 16px; }
+.sheet-field-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: var(--text3); text-transform: uppercase; margin-bottom: 5px; }
+.sheet-field-val {
+  background: var(--surface2); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  font-size: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.sheet-field-val.mono { font-family: var(--mono); font-size: 13px; letter-spacing: 0.05em; }
+.copy-mini-btn {
+  background: none; border: none; cursor: pointer; color: var(--accent);
+  font-size: 12px; font-weight: 600; font-family: var(--sans); flex-shrink: 0;
+}
+.sheet-del-btn {
+  width: 100%; background: var(--red-dim); border: 0.5px solid var(--red);
+  color: var(--red); border-radius: var(--radius); font-size: 15px; font-weight: 600;
+  font-family: var(--sans); padding: 14px; cursor: pointer; margin-top: 8px;
+  transition: background 0.15s;
+}
+.sheet-del-btn:active { background: rgba(248,113,113,0.25); }
+.sheet-close-btn {
+  width: 100%; background: var(--surface2); border: 0.5px solid var(--border2);
+  color: var(--text2); border-radius: var(--radius); font-size: 15px; font-weight: 500;
+  font-family: var(--sans); padding: 14px; cursor: pointer; margin-top: 8px;
+}
+
+/* SETTINGS */
+.settings-list { display: flex; flex-direction: column; gap: 8px; }
+.setting-item {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  display: flex; align-items: center; gap: 14px;
+}
+.setting-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.setting-icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.setting-body { flex: 1; }
+.setting-title { font-size: 14px; font-weight: 600; }
+.setting-desc { font-size: 12px; color: var(--text2); margin-top: 2px; line-height: 1.4; }
+.setting-arrow { color: var(--text3); }
+.setting-arrow svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* INSTALL BANNER */
+#install-banner {
+  display: none; margin: 16px 20px 0;
+  background: linear-gradient(135deg, rgba(124,106,247,0.15), rgba(124,106,247,0.05));
+  border: 0.5px solid var(--accent); border-radius: var(--radius);
+  padding: 14px 16px;
+}
+#install-banner.show { display: block; }
+.install-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 3px; }
+.install-desc { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 10px; }
+.install-btn {
+  background: var(--accent); color: #fff; border: none;
+  border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+  font-family: var(--sans); padding: 9px 18px; cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="screen"></div>
+  <nav id="navbar">
+    <button class="nav-btn active" onclick="navigate('home')" id="nav-home">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      <span class="nav-label">금고</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('add')" id="nav-add">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+      <span class="nav-label">추가</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('gen')" id="nav-gen">
+      <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+      <span class="nav-label">생성기</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('settings')" id="nav-settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      <span class="nav-label">설정</span>
+    </button>
+  </nav>
+</div>
+
+<div id="detail-overlay" onclick="closeDetail(event)">
+  <div id="detail-sheet">
+    <div class="sheet-handle"></div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'vault_entries_v1';
+const avatarColors = [
+  ['#1a1a3e','#7c6af7'], ['#0f2a1a','#4ade80'], ['#2a1a0f','#fbbf24'],
+  ['#2a0f1a','#f472b6'], ['#0f1e2a','#60a5fa'], ['#1a2a0f','#86efac'],
+  ['#2a1a2a','#c084fc'], ['#1a2a2a','#34d399']
+];
+
+let entries = [];
+let currentPage = 'home';
+let selectedCat = 'all';
+let searchQ = '';
+let detailEntry = null;
+let genOptions = { upper: true, lower: true, num: true, sym: true };
+let genLen = 16;
+let genPw = '';
+
+function loadData() {
+  try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { entries = []; }
+  if (!entries.length) {
+    entries = [
+      { id: 1, site: '네이버', user: 'hong123@naver.com', pw: 'Nv#9kLpQ2!mZ', cat: '소셜', note: '', ts: Date.now()-86400000 },
+      { id: 2, site: 'Gmail', user: 'hong.gildong@gmail.com', pw: 'gM!8xTr3vY#q', cat: '이메일', note: '업무용', ts: Date.now()-172800000 },
+      { id: 3, site: '카카오뱅크', user: '01012345678', pw: 'kB@5nWs7!cZ', cat: '금융', note: '', ts: Date.now()-259200000 },
+    ];
+    saveData();
+  }
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function nextId() { return entries.length ? Math.max(...entries.map(e => e.id)) + 1 : 1; }
+
+function scorePassword(pw) {
+  let s = 0;
+  if (!pw) return 0;
+  if (pw.length >= 8) s++;
+  if (pw.length >= 12) s++;
+  if (pw.length >= 16) s++;
+  if (/[A-Z]/.test(pw)) s++;
+  if (/[a-z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  return s;
+}
+
+function strengthInfo(score) {
+  if (score <= 3) return { label: '취약', color: 'var(--red)', pct: 25 };
+  if (score <= 5) return { label: '보통', color: 'var(--amber)', pct: 60 };
+  return { label: '강력', color: 'var(--green)', pct: 100 };
+}
+
+function avatarFor(site) {
+  let h = 0;
+  for (let c of site) h = (h * 31 + c.charCodeAt(0)) & 0xff;
+  return avatarColors[h % avatarColors.length];
+}
+
+function initials(site) { return site.slice(0, 2).toUpperCase(); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-' + page).classList.add('active');
+  render();
+}
+
+function render() {
+  const screen = document.getElementById('screen');
+  if (currentPage === 'home') screen.innerHTML = renderHome();
+  else if (currentPage === 'add') screen.innerHTML = renderAdd();
+  else if (currentPage === 'gen') screen.innerHTML = renderGen();
+  else if (currentPage === 'settings') screen.innerHTML = renderSettings();
+  attachEvents();
+}
+
+function renderHome() {
+  const cats = ['all', ...new Set(entries.map(e => e.cat))];
+  const q = searchQ.toLowerCase();
+  const filtered = entries.filter(e => {
+    const catOk = selectedCat === 'all' || e.cat === selectedCat;
+    const searchOk = !q || e.site.toLowerCase().includes(q) || e.user.toLowerCase().includes(q);
+    return catOk && searchOk;
+  });
+  const strong = entries.filter(e => scorePassword(e.pw) >= 6).length;
+  const weak = entries.filter(e => scorePassword(e.pw) <= 3).length;
+
+  return `
+    <div class="page-header" style="padding-top: calc(20px + env(safe-area-inset-top));">
+      <div>
+        <div class="page-title">내 금고</div>
+        <div class="page-sub">${entries.length}개의 비밀번호 저장됨</div>
+      </div>
+    </div>
+    ${deferredPrompt ? '<div id="install-banner" class="show"><div class="install-title">홈 화면에 설치하기</div><div class="install-desc">앱처럼 설치하면 언제든지 빠르게 접근할 수 있습니다.</div><button class="install-btn" onclick="installPWA()">설치하기</button></div>' : ''}
+    <div class="stats-strip">
+      <div class="stat-chip"><div class="num">${entries.length}</div><div class="lbl">전체</div></div>
+      <div class="stat-chip green"><div class="num">${strong}</div><div class="lbl">강력</div></div>
+      <div class="stat-chip red"><div class="num">${weak}</div><div class="lbl">취약</div></div>
+    </div>
+    <div class="search-wrap">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="search" id="search-input" placeholder="검색..." value="${searchQ}" oninput="searchQ=this.value; render();" autocomplete="off">
+      </div>
+    </div>
+    <div class="section">
+      <div class="cat-chips">
+        ${cats.map(c => `<div class="cat-chip ${selectedCat===c?'active':''}" onclick="selectedCat='${c}'; render();">${c === 'all' ? '전체' : c}</div>`).join('')}
+      </div>
+      <div class="pw-list">
+        ${filtered.length === 0 ? `
+          <div class="empty">
+            <div class="empty-icon" style="font-size:40px; color:var(--text3);">
+              <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <div class="empty-title">항목이 없습니다</div>
+            <div class="empty-sub">하단의 + 버튼을 눌러<br>첫 번째 비밀번호를 추가해보세요.</div>
+          </div>
+        ` : filtered.map(e => {
+          const [bg, fg] = avatarFor(e.site);
+          const si = strengthInfo(scorePassword(e.pw));
+          return `<div class="pw-card" onclick="openDetail(${e.id})">
+            <div class="pw-avatar" style="background:${bg}; color:${fg};">${initials(e.site)}</div>
+            <div class="pw-body">
+              <div class="pw-site">${e.site}</div>
+              <div class="pw-user">${e.user}</div>
+              <div class="pw-meta">
+                <div class="pw-strength-dot" style="background:${si.color};"></div>
+                <span class="pw-strength-text" style="color:${si.color};">${si.label}</span>
+                <span class="pw-mask">••••••••</span>
+              </div>
+            </div>
+            <div style="color:var(--text3);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderAdd() {
+  return `
+    <div class="page-header" style="padding-top: calc(20px + env(safe-area-inset-top));">
+      <div class="page-title">새 항목 추가</div>
+    </div>
+    <div class="form-wrap">
+      <div class="form-section-title">기본 정보</div>
+      <div class="field">
+        <label class="field-label">사이트 / 서비스명 *</label>
+        <input type="text" id="f-site" placeholder="예: 네이버, Gmail, 쿠팡" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">아이디 / 이메일 *</label>
+          <input type="text" id="f-user" placeholder="아이디 또는 이메일" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="field-label">카테고리</label>
+          <select id="f-cat">
+            <option value="소셜">소셜</option>
+            <option value="이메일">이메일</option>
+            <option value="금융">금융</option>
+            <option value="쇼핑">쇼핑</option>
+            <option value="업무">업무</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-section-title">비밀번호</div>
+      <div class="field mono">
+        <label class="field-label">비밀번호 *</label>
+        <div class="pw-input-row">
+          <input type="text" id="f-pw" placeholder="비밀번호 입력" autocomplete="off" oninput="updateAddStrength()">
+          <button class="gen-mini-btn" onclick="fillAddPw()">자동</button>
+        </div>
+        <div class="strength-bar-wrap">
+          <div class="strength-bar-bg"><div class="strength-bar-fill" id="add-bar" style="width:0%;background:var(--red);"></div></div>
+          <div class="strength-label" id="add-lbl" style="color:var(--text3);">비밀번호를 입력하세요</div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">메모 (선택)</label>
+        <input type="text" id="f-note" placeholder="힌트, 메모 등" autocomplete="off">
+      </div>
+      <button class="btn-primary" onclick="addEntry()">저장하기</button>
+      <button class="btn-secondary" onclick="navigate('home')">취소</button>
+    </div>
+  `;
+}
+
+function renderGen() {
+  const si = genPw ? strengthInfo(scorePassword(genPw)) : null;
+  return `
+    <div class="page-header" style="padding-top: calc(20px + env(safe-area-inset-top));">
+      <div class="page-title">비밀번호 생성기</div>
+    </div>
+    <div class="form-wrap">
+      <div class="gen-output-card">
+        ${genPw
+          ? `<div class="gen-pw-text">${genPw}</div>
+             <div class="strength-bar-wrap">
+               <div class="strength-bar-bg"><div class="strength-bar-fill" style="width:${si.pct}%;background:${si.color};"></div></div>
+               <div class="strength-label" style="color:${si.color};">강도: ${si.label}</div>
+             </div>`
+          : `<div class="gen-pw-text gen-pw-placeholder">생성 버튼을 눌러주세요</div>`
+        }
+        <div class="gen-actions">
+          <button class="gen-copy-btn" onclick="copyGen()">복사하기</button>
+          <button class="gen-refresh-btn" onclick="doGenerate()">
+            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          </button>
+        </div>
+      </div>
+      <div class="slider-wrap">
+        <div class="slider-header">
+          <span class="slider-label">길이</span>
+          <span class="slider-val" id="len-display">${genLen}</span>
+        </div>
+        <input type="range" id="gen-len-slider" min="8" max="32" step="1" value="${genLen}"
+          oninput="genLen=parseInt(this.value); document.getElementById('len-display').textContent=this.value; doGenerate();">
+      </div>
+      <div class="options-grid">
+        ${[['upper','대문자 A-Z'],['lower','소문자 a-z'],['num','숫자 0-9'],['sym','특수문자 !@#']].map(([k,l]) =>
+          `<div class="opt-toggle ${genOptions[k]?'on':''}" onclick="toggleOpt('${k}')">
+            <div class="opt-dot"></div><span class="opt-text">${l}</span>
+          </div>`).join('')}
+      </div>
+      <button class="btn-primary" onclick="doGenerate()">새 비밀번호 생성</button>
+    </div>
+  `;
+}
+
+function renderSettings() {
+  const total = entries.length;
+  const strong = entries.filter(e => scorePassword(e.pw) >= 6).length;
+  const weak = entries.filter(e => scorePassword(e.pw) <= 3).length;
+  return `
+    <div class="page-header" style="padding-top: calc(20px + env(safe-area-inset-top));">
+      <div class="page-title">설정</div>
+    </div>
+    <div class="section">
+      <div class="section-label">보안 현황</div>
+      <div class="settings-list">
+        <div class="setting-item">
+          <div class="setting-icon" style="background:var(--green-dim); color:var(--green);">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <div class="setting-body">
+            <div class="setting-title">전체 ${total}개 저장됨</div>
+            <div class="setting-desc">강력 ${strong}개 · 취약 ${weak}개</div>
+          </div>
+        </div>
+      </div>
+      <div class="section-label" style="margin-top:20px;">데이터 관리</div>
+      <div class="settings-list">
+        <div class="setting-item" onclick="exportData()" style="cursor:pointer;">
+          <div class="setting-icon" style="background:var(--accent-dim); color:var(--accent);">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </div>
+          <div class="setting-body">
+            <div class="setting-title">백업 내보내기</div>
+            <div class="setting-desc">JSON 파일로 저장 (암호화 없음 — 안전한 곳에 보관)</div>
+          </div>
+          <div class="setting-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+        </div>
+        <div class="setting-item" onclick="document.getElementById('import-file').click()" style="cursor:pointer;">
+          <div class="setting-icon" style="background:var(--amber-dim); color:var(--amber);">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          </div>
+          <div class="setting-body">
+            <div class="setting-title">백업 불러오기</div>
+            <div class="setting-desc">이전에 내보낸 JSON 파일 복원</div>
+          </div>
+          <div class="setting-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+        </div>
+        <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
+      </div>
+      <div class="section-label" style="margin-top:20px;">앱 정보</div>
+      <div class="settings-list">
+        <div class="setting-item">
+          <div class="setting-icon" style="background:var(--surface2); color:var(--text2);">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          </div>
+          <div class="setting-body">
+            <div class="setting-title">내 금고 v1.0</div>
+            <div class="setting-desc">데이터는 이 기기에만 저장됩니다. 인터넷 연결 불필요.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function attachEvents() {
+  const si = document.getElementById('search-input');
+  if (si) { si.focus = () => {}; }
+}
+
+function openDetail(id) {
+  detailEntry = entries.find(e => e.id === id);
+  if (!detailEntry) return;
+  const [bg, fg] = avatarFor(detailEntry.site);
+  const si = strengthInfo(scorePassword(detailEntry.pw));
+  document.getElementById('detail-content').innerHTML = `
+    <div class="sheet-title">${detailEntry.site}</div>
+    <div class="sheet-cat">${detailEntry.cat}${detailEntry.note ? ' · ' + detailEntry.note : ''}</div>
+    <div class="sheet-field">
+      <div class="sheet-field-label">아이디 / 이메일</div>
+      <div class="sheet-field-val">
+        <span>${detailEntry.user}</span>
+        <button class="copy-mini-btn" onclick="copyText('${detailEntry.user}','아이디')">복사</button>
+      </div>
+    </div>
+    <div class="sheet-field">
+      <div class="sheet-field-label">비밀번호</div>
+      <div class="sheet-field-val mono" id="pw-val-row">
+        <span id="pw-val-text">••••••••••••</span>
+        <div style="display:flex;gap:8px;">
+          <button class="copy-mini-btn" onclick="togglePwView()">보기</button>
+          <button class="copy-mini-btn" onclick="copyText('${detailEntry.pw.replace(/'/g,"\\'")}','비밀번호')">복사</button>
+        </div>
+      </div>
+      <div class="strength-bar-wrap">
+        <div class="strength-bar-bg"><div class="strength-bar-fill" style="width:${si.pct}%;background:${si.color};"></div></div>
+        <div class="strength-label" style="color:${si.color};">강도: ${si.label}</div>
+      </div>
+    </div>
+    <button class="sheet-del-btn" onclick="deleteEntry(${detailEntry.id})">삭제</button>
+    <button class="sheet-close-btn" onclick="closeDetailSheet()">닫기</button>
+  `;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+let pwShowing = false;
+function togglePwView() {
+  pwShowing = !pwShowing;
+  document.getElementById('pw-val-text').textContent = pwShowing ? detailEntry.pw : '••••••••••••';
+}
+
+function closeDetail(e) {
+  if (e.target === document.getElementById('detail-overlay')) closeDetailSheet();
+}
+function closeDetailSheet() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  pwShowing = false;
+}
+
+function copyText(text, label) {
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  });
+  showToast(label + ' 복사됨');
+}
+
+function deleteEntry(id) {
+  if (!confirm('이 항목을 삭제할까요?')) return;
+  entries = entries.filter(e => e.id !== id);
+  saveData(); closeDetailSheet();
+  navigate('home'); showToast('삭제되었습니다');
+}
+
+function fillAddPw() {
+  const pw = generatePassword(16);
+  const el = document.getElementById('f-pw');
+  if (el) { el.value = pw; updateAddStrength(); }
+}
+
+function updateAddStrength() {
+  const pw = document.getElementById('f-pw')?.value || '';
+  const si = strengthInfo(scorePassword(pw));
+  const bar = document.getElementById('add-bar');
+  const lbl = document.getElementById('add-lbl');
+  if (bar) { bar.style.width = pw ? si.pct + '%' : '0%'; bar.style.background = si.color; }
+  if (lbl) { lbl.textContent = pw ? '강도: ' + si.label : '비밀번호를 입력하세요'; lbl.style.color = pw ? si.color : 'var(--text3)'; }
+}
+
+function addEntry() {
+  const site = document.getElementById('f-site')?.value.trim();
+  const user = document.getElementById('f-user')?.value.trim();
+  const pw = document.getElementById('f-pw')?.value.trim();
+  const cat = document.getElementById('f-cat')?.value || '기타';
+  const note = document.getElementById('f-note')?.value.trim() || '';
+  if (!site || !user || !pw) { showToast('사이트명, 아이디, 비밀번호는 필수입니다'); return; }
+  entries.unshift({ id: nextId(), site, user, pw, cat, note, ts: Date.now() });
+  saveData(); showToast(site + ' 저장 완료!');
+  navigate('home');
+}
+
+function generatePassword(len) {
+  let chars = '';
+  if (genOptions.lower) chars += 'abcdefghijklmnopqrstuvwxyz';
+  if (genOptions.upper) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (genOptions.num) chars += '0123456789';
+  if (genOptions.sym) chars += '!@#$%^&*()-_=+[]{}|;:,.<>?';
+  if (!chars) chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let res = '';
+  for (let i = 0; i < (len||genLen); i++) res += chars[Math.floor(Math.random() * chars.length)];
+  return res;
+}
+
+function doGenerate() { genPw = generatePassword(genLen); render(); }
+
+function copyGen() {
+  if (!genPw) { showToast('먼저 비밀번호를 생성하세요'); return; }
+  copyText(genPw, '비밀번호');
+}
+
+function toggleOpt(key) {
+  genOptions[key] = !genOptions[key];
+  if (genPw) doGenerate(); else render();
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = '내금고_백업_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('백업 파일 저장됨');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error();
+      if (confirm(`${data.length}개의 항목을 불러올까요? 기존 데이터에 추가됩니다.`)) {
+        const maxId = entries.length ? Math.max(...entries.map(x => x.id)) : 0;
+        data.forEach((d, i) => { d.id = maxId + i + 1; entries.push(d); });
+        saveData(); navigate('home'); showToast(data.length + '개 불러오기 완료');
+      }
+    } catch { showToast('올바른 백업 파일이 아닙니다'); }
+  };
+  reader.readAsText(file);
+}
+
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e; render();
+});
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => { deferredPrompt = null; render(); });
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+loadData();
+render();
+</script>
+</body>
+</html>
