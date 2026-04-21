@@ -2,13 +2,18 @@
   "name": "내 금고 - 비밀번호 관리자",
   "short_name": "내 금고",
   "description": "PIN 잠금이 있는 비밀번호 관리 앱",
-  "start_url": ".",
-  "scope": ".",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#111318",
   "theme_color": "#111318",
   "orientation": "portrait-primary",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
